@@ -2,6 +2,13 @@
 import UserDashboard from "@/components/modules/UserDashboard/UserDashboard";
 import { getWeeklyReport, getTasksForDashboard } from "@/services/TaskService";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "User Dashboard",
+  description: "Overview of user activities and tasks",
+};
+
 const DashboardPage = async () => {
   const [weeklyReport, tasks] = await Promise.all([
     getWeeklyReport(),

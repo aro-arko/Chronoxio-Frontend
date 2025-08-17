@@ -713,7 +713,7 @@ const Tasks: React.FC<Props> = ({
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold">📋 My Tasks</h2>
+            <h2 className="text-3xl font-bold">My Tasks</h2>
             <p className="text-muted-foreground mt-2">
               Manage your daily tasks and boost productivity
             </p>

@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
+import logo from "../../app/assets/images/clock.svg";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -146,8 +147,20 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 lg:px-0">
         <div className="flex justify-between h-16 items-center">
           {/* Brand */}
-          <Link href="/" className="flex items-center" aria-label="Chronoxio">
-            <h1 className="text-2xl font-bold">Chronoxio</h1>
+          <Link
+            href="/"
+            className="flex items-center gap-2"
+            aria-label="Chronoxio"
+          >
+            <Image
+              src={logo}
+              alt="Chronoxio Logo"
+              width={36}
+              height={36}
+              className="rounded-md object-contain"
+              priority
+            />
+            <span className="text-xl md:text-2xl font-bold">Chronoxio</span>
           </Link>
 
           {/* Desktop nav */}

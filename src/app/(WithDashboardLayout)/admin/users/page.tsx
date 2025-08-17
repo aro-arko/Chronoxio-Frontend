@@ -1,6 +1,13 @@
 import Users from "@/components/modules/users/Users";
 import { allUsers } from "@/services/UserService";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Users",
+  description: "Manage user accounts and permissions",
+};
+
 export default async function UsersPage() {
   const res = await allUsers();
   return (

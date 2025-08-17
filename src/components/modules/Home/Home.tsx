@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Link from "next/link";
 import Image from "next/image";
@@ -65,7 +66,7 @@ export default function Home() {
     <main className="min-h-screen antialiased">
       {/* Hero (white, text left, image right) */}
       <section className="bg-white">
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:px-8 lg:py-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 px-0 py-12 sm:px-6 md:px-0 lg:grid-cols-2 lg:px-0 lg:py-20">
           {/* Left: copy */}
           <div className="order-2 space-y-5 text-neutral-900 lg:order-1">
             <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-blue-700 sm:text-xs">
@@ -118,7 +119,7 @@ export default function Home() {
 
       {/* Features */}
       <section className="bg-gradient-to-br from-blue-50 via-purple-50 to-orange-50 py-14 sm:py-16">
-        <div className="mx-auto w-full max-w-7xl space-y-8 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl space-y-8 px-4 sm:px-6 lg:px-0">
           <FeatureCard
             image={taskIllustration}
             title="Create Tasks Effortlessly"
@@ -151,7 +152,7 @@ export default function Home() {
       {/* CTA strip */}
       {!user && (
         <section className="bg-white py-12 sm:py-14">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-0">
             <div className="rounded-2xl border border-neutral-200 bg-gradient-to-r from-blue-600 to-violet-600 p-6 text-white shadow-lg sm:p-7">
               <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
                 <div>

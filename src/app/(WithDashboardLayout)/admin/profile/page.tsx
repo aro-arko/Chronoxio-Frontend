@@ -2,6 +2,13 @@
 import Profile from "@/components/modules/Profile/Profile";
 import { getMe } from "@/services/Profile";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  description: "View and edit your profile information",
+};
+
 export default async function ProfilePageAdmin() {
   try {
     const me = await getMe();

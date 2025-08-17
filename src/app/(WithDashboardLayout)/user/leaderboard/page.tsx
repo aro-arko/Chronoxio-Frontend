@@ -2,6 +2,13 @@
 import LeaderBoard from "@/components/modules/LeaderBoard/LeaderBoard";
 import { getLeaderBoard } from "@/services/LeaderBoard";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Leaderboard",
+  description: "View the leaderboard for user performance",
+};
+
 type SP = Record<string, string | string[] | undefined>;
 
 const getStr = (sp: SP, key: string, fallback = ""): string => {

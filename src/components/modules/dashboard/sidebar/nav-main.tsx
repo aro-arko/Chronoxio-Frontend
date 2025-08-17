@@ -14,6 +14,8 @@ import {
 import { Collapsible, CollapsibleTrigger } from "@radix-ui/react-collapsible";
 import { CollapsibleContent } from "@/components/ui/collapsible";
 import Link from "next/link";
+import Image from "next/image";
+import logo from "../../../../app/assets/images/clock.svg";
 
 export type NavItem = {
   title: string;
@@ -30,9 +32,19 @@ export function NavMain({ items = [] }: NavMainProps) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          📝 Chronoxio
-        </h1>
+        <div className="flex items-center gap-2" aria-label="Chronoxio">
+          <Image
+            src={logo}
+            alt="Chronoxio Logo"
+            width={36}
+            height={36}
+            className="rounded-md object-contain"
+            priority
+          />
+          <span className="text-xl text-black md:text-2xl font-bold">
+            Chronoxio
+          </span>
+        </div>
       </SidebarGroupLabel>
 
       <SidebarMenu>

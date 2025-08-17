@@ -1,6 +1,13 @@
 import Reports, { ReportTask } from "@/components/modules/Reports/Reports";
 import { getTasksForDashboard } from "@/services/TaskService";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Reports",
+  description: "View task reports and analytics",
+};
+
 // API task shape coming from your example
 type ApiTask = {
   _id: string;

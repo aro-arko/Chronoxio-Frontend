@@ -1,6 +1,13 @@
 import EditProfile from "@/components/modules/Profile/EditProfile";
 import { getMe } from "@/services/Profile";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  description: "Edit your account profile",
+};
+
 export default async function EditProfileAdminPage() {
   const me = await getMe();
 
