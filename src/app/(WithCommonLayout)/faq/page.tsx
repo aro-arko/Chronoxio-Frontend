@@ -1,4 +1,10 @@
 import FaqSection from "@/components/modules/Faq/faq";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Frequently Asked Questions",
+  description: "Find answers to common questions about Chronoxio.",
+};
 
 const FaqPage = () => {
   return (

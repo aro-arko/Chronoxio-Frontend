@@ -20,6 +20,8 @@ import { useUser } from "@/context/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import { logout } from "@/services/AuthService";
 import { Separator } from "@/components/ui/separator";
+import { protectedRoutes } from "@/constants";
+import { useState } from "react";
 
 interface UserDetails {
   name: string;
@@ -28,17 +30,40 @@ interface UserDetails {
 
 export function NavUser({ userDetails }: { userDetails?: UserDetails | null }) {
   const { isMobile } = useSidebar();
-  const { user, setIsLoading } = useUser();
+  const { setIsLoading, user, setUser, refreshUser } = useUser();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    logout();
-    setIsLoading(true);
-    router.push("/login");
-  };
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout(); // server-side cookie delete
 
+      // broadcast to all tabs / components
+      try {
+        new BroadcastChannel("auth").postMessage("logout");
+      } catch {}
+      try {
+        localStorage.setItem("auth:ping", String(Date.now()));
+      } catch {}
+
+      // instant UI update in this tab
+      setUser(null);
+      await refreshUser();
+      router.refresh();
+
+      // if you're on a protected route, bounce to /
+      if (protectedRoutes.some((route) => pathname.match(route))) {
+        router.push("/");
+      }
+    } finally {
+      setIsLoading(false);
+      setLoggingOut(false);
+    }
+  };
   const handleChangePassword = () => {
     router.push(`/${user?.role}/change-password`);
   };

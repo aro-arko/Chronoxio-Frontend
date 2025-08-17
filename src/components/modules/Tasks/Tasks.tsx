@@ -45,7 +45,7 @@ import {
   completeTask,
   getTasks,
   deleteTask as deleteTaskApi,
-  updateExpiredTask, // <<< added
+  updateExpiredTask,
 } from "@/services/TaskService";
 
 type Task = {
@@ -53,8 +53,15 @@ type Task = {
   serverId?: string;
   taskName: string;
   category: string;
+
+  // Original strings from backend (kept for reference; not used for logic/render)
   startTime: string;
   endTime: string;
+
+  // Parsed milliseconds for logic
+  startMs: number;
+  endMs: number;
+
   priority: "High" | "Medium" | "Low" | string;
   completionTime?: number; // seconds
 };
@@ -89,8 +96,93 @@ type Props = {
   setShowTaskModal: (open: boolean) => void;
 };
 
+/** Format ms → "YYYY-MM-DDTHH:mm" (no seconds, no TZ) */
+function formatLocalNoSeconds(ms: number): string {
+  if (!Number.isFinite(ms)) return "";
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+/** Parse various inputs to local wall-clock ms:
+ * - ISO w/ Z or timezone (e.g., "2025-08-17T19:31:00.000Z" or "+08:00"):
+ *    We IGNORE the TZ and treat the clock-time as local.
+ * - ISO w/o TZ ("2025-08-17T19:41"):
+ *    Already local → keep as local.
+ * - "DD/MM/YYYY, HH:mm(:ss)?" → build local Date.
+ */
+function parseDateToMs(input: string): number {
+  if (!input) return NaN;
+  const s = input.trim();
+
+  // "DD/MM/YYYY, HH:mm[:ss]"
+  const mDMY = s.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})[,\s]+(\d{2}):(\d{2})(?::(\d{2}))?$/
+  );
+  if (mDMY) {
+    const [, dd, mm, yyyy, HH, MM, SS] = mDMY;
+    return new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      Number(HH),
+      Number(MM),
+      SS ? Number(SS) : 0,
+      0
+    ).getTime();
+  }
+
+  // ISO with explicit timezone (Z or ±hh:mm). Treat as *local wall-clock*.
+  // Examples matched here:
+  //  - 2025-08-17T19:31:00.000Z
+  //  - 2025-08-17T19:31:00Z
+  //  - 2025-08-17T19:31:00+00:00, 2025-08-17T19:31:00-04:00
+  const mISOtz = s.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(Z|[+\-]\d{2}:\d{2})$/
+  );
+  if (mISOtz) {
+    const [, Y, M, D, h, m, sec, ms] = mISOtz;
+    return new Date(
+      Number(Y),
+      Number(M) - 1,
+      Number(D),
+      Number(h),
+      Number(m),
+      sec ? Number(sec) : 0,
+      ms ? Number(ms) : 0
+    ).getTime();
+  }
+
+  // ISO without timezone → spec treats as local already
+  const mISOlocal = s.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?$/
+  );
+  if (mISOlocal) {
+    const [, Y, M, D, h, m, sec, ms] = mISOlocal;
+    return new Date(
+      Number(Y),
+      Number(M) - 1,
+      Number(D),
+      Number(h),
+      Number(m),
+      sec ? Number(sec) : 0,
+      ms ? Number(ms) : 0
+    ).getTime();
+  }
+
+  // Fallback
+  return new Date(s).getTime();
+}
+
 function ensureSeconds(local: string): string {
   if (!local) return local;
+  // Only used for sending datetime-local values to backend
+  // "YYYY-MM-DDTHH:mm" -> add ":00"
   const time = local.split("T")[1] || "";
   const colons = (time.match(/:/g) || []).length;
   if (colons === 1) return `${local}:00`;
@@ -143,19 +235,19 @@ const Tasks: React.FC<Props> = ({
   const notificationRef = useRef<Record<number, any>>({});
   const longTaskTimers = useRef<Record<number, any>>({});
   const intervalsRef = useRef<Record<number, any>>({});
-  const expiredCalledRef = useRef<Record<number, boolean>>({}); // <<< added
+  const expiredCalledRef = useRef<Record<number, boolean>>({});
 
   // ---- Backend payload helpers
   const buildCreatePayload = (t: Task) => ({
     title: t.taskName,
-    startDate: ensureSeconds(t.startTime),
+    startDate: ensureSeconds(formatLocalNoSeconds(t.startMs)), // send normalized local without seconds TZ (add :00 above)
     category: t.category,
     priority: t.priority,
-    endDate: ensureSeconds(t.endTime),
+    endDate: ensureSeconds(formatLocalNoSeconds(t.endMs)),
   });
 
   const buildCompletePayload = (timeSpentSeconds: number) => ({
-    timeSpent: timeSpentSeconds, // seconds
+    timeSpent: timeSpentSeconds,
   });
 
   // ---------- Initial fetch
@@ -172,7 +264,10 @@ const Tasks: React.FC<Props> = ({
 
         data.forEach((item, idx) => {
           const localId = Date.now() + idx;
-          const endMs = new Date(item.endDate).getTime();
+
+          // Parse backend strings as *local* regardless of Z/offset
+          const startMs = parseDateToMs(item.startDate);
+          const endMs = parseDateToMs(item.endDate);
 
           const t: Task = {
             id: localId,
@@ -181,6 +276,8 @@ const Tasks: React.FC<Props> = ({
             category: item.category,
             startTime: item.startDate,
             endTime: item.endDate,
+            startMs,
+            endMs,
             priority: item.priority,
             completionTime:
               item.status === "completed"
@@ -218,17 +315,15 @@ const Tasks: React.FC<Props> = ({
         name: task.taskName,
         category: task.category,
         priority: task.priority,
-        startTime: task.startTime,
-        endTime: task.endTime,
+        // Keep original strings in report if you prefer; or switch to display format:
+        startTime: formatLocalNoSeconds(task.startMs),
+        endTime: formatLocalNoSeconds(task.endMs),
         status: completedTasks[task.id]
           ? "Completed"
           : expiredTasks[task.id]
           ? "Expired"
           : "Pending",
-        duration: completedTasks[task.id]
-          ? new Date(task.endTime).getTime() -
-            new Date(task.startTime).getTime()
-          : null,
+        duration: completedTasks[task.id] ? task.endMs - task.startMs : null,
         completionTime: task.completionTime ?? null,
         completedOn: completedTasks[task.id] ? new Date().toISOString() : null,
       })),
@@ -254,8 +349,7 @@ const Tasks: React.FC<Props> = ({
       tasks.forEach((task) => {
         const taskId = task.id;
         const now = Date.now();
-        const startMs = new Date(task.startTime).getTime();
-        const timeUntilStart = startMs - now;
+        const timeUntilStart = task.startMs - now;
 
         if (notificationRef.current[taskId]) {
           clearTimeout(notificationRef.current[taskId]);
@@ -298,12 +392,11 @@ const Tasks: React.FC<Props> = ({
     return parts.join(" ");
   };
 
-  // <<< helper: mark a task as expired locally + call API once
+  // mark a task as expired locally + call API once
   const expireTask = async (taskId: number) => {
     if (expiredCalledRef.current[taskId]) return;
     expiredCalledRef.current[taskId] = true;
 
-    // stop any timers for this task
     if (intervalsRef.current[taskId]) {
       clearInterval(intervalsRef.current[taskId]);
       delete intervalsRef.current[taskId];
@@ -331,7 +424,7 @@ const Tasks: React.FC<Props> = ({
 
   const handleStartCountdown = (
     taskId: number,
-    endTime: string | null,
+    endMsParam: number | null,
     remainingSecondsOverride: number | null = null
   ) => {
     clearInterval(intervalsRef.current[taskId]);
@@ -340,12 +433,12 @@ const Tasks: React.FC<Props> = ({
       delete longTaskTimers.current[taskId];
     }
 
+    const endMs = endMsParam ?? tasks.find((t) => t.id === taskId)?.endMs ?? 0;
+
     const initialRemaining =
       remainingSecondsOverride !== null
         ? remainingSecondsOverride
-        : Math.floor(
-            (new Date(endTime as string).getTime() - Date.now()) / 1000
-          );
+        : Math.floor((endMs - Date.now()) / 1000);
 
     setActiveTimers((prev) => ({ ...prev, [taskId]: initialRemaining }));
     setTaskStartTimes((prev) => ({ ...prev, [taskId]: Date.now() }));
@@ -365,7 +458,6 @@ const Tasks: React.FC<Props> = ({
         const newRemaining = (prev[taskId] || 0) - 1;
         if (newRemaining <= 0) {
           clearInterval(intervalsRef.current[taskId]);
-          // mark expired + call API (outside state setter)
           setTimeout(() => expireTask(taskId), 0);
           const { [taskId]: _omit, ...rest } = prev;
           return rest;
@@ -398,17 +490,14 @@ const Tasks: React.FC<Props> = ({
   const handleCompleteTask = async (taskId: number) => {
     clearInterval(intervalsRef.current[taskId]);
 
-    const startMs =
-      taskStartTimes[taskId] ||
-      new Date(tasks.find((t) => t.id === taskId)!.startTime).getTime();
+    const task = tasks.find((t) => t.id === taskId)!;
+    const startMs = taskStartTimes[taskId] || task.startMs;
     const timeSpentSeconds = Math.floor((Date.now() - startMs) / 1000);
 
     // optimistic
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? { ...task, completionTime: timeSpentSeconds }
-          : task
+      prev.map((t) =>
+        t.id === taskId ? { ...t, completionTime: timeSpentSeconds } : t
       )
     );
     setCompletedTasks((prev) => ({ ...prev, [taskId]: true }));
@@ -418,10 +507,8 @@ const Tasks: React.FC<Props> = ({
       return rest;
     });
 
-    const t = tasks.find((x) => x.id === taskId)!;
-
     try {
-      const idForApi = t.serverId ?? String(t.id);
+      const idForApi = task.serverId ?? String(task.id);
       const payload = buildCompletePayload(timeSpentSeconds);
       await completeTask(idForApi, payload);
     } catch (err) {
@@ -433,8 +520,8 @@ const Tasks: React.FC<Props> = ({
       [
         {
           id: taskId,
-          taskName: t.taskName,
-          priority: t.priority,
+          taskName: task.taskName,
+          priority: task.priority,
           action: "Completed",
           timestamp: Date.now(),
         },
@@ -442,7 +529,7 @@ const Tasks: React.FC<Props> = ({
       ].slice(0, 5)
     );
 
-    toast.success(`Completed "${t.taskName}"`);
+    toast.success(`Completed "${task.taskName}"`);
   };
 
   const handleDeleteTask = async (taskId: number) => {
@@ -492,8 +579,8 @@ const Tasks: React.FC<Props> = ({
       tasks.forEach((task) => {
         const now = Date.now();
         const taskId = task.id;
-        const start = new Date(task.startTime).getTime();
-        const end = new Date(task.endTime).getTime();
+        const start = task.startMs;
+        const end = task.endMs;
 
         if (
           now >= start &&
@@ -504,14 +591,13 @@ const Tasks: React.FC<Props> = ({
           !expiredTasks[taskId]
         ) {
           const remaining = Math.floor((end - now) / 1000);
-          handleStartCountdown(taskId, null, remaining);
+          handleStartCountdown(taskId, end, remaining);
         } else if (
           now >= end &&
           !completedTasks[taskId] &&
           !expiredTasks[taskId] &&
           !expiredCalledRef.current[taskId]
         ) {
-          // end time passed and user didn't mark complete → expire it
           expireTask(taskId);
         }
       });
@@ -535,8 +621,8 @@ const Tasks: React.FC<Props> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const startMs = new Date(formData.startTime).getTime();
-    const endMs = new Date(formData.endTime).getTime();
+    const startMs = parseDateToMs(formData.startTime);
+    const endMs = parseDateToMs(formData.endTime);
     if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
       toast.error("Please provide valid start and end times.");
       return;
@@ -570,7 +656,13 @@ const Tasks: React.FC<Props> = ({
       const newTask: Task = {
         id: Date.now(),
         serverId,
-        ...formData,
+        taskName: formData.taskName,
+        category: formData.category,
+        startTime: formData.startTime, // original
+        endTime: formData.endTime, // original
+        startMs,
+        endMs,
+        priority: formData.priority,
       };
       setTasks((prev) => [...prev, newTask]);
 
@@ -721,14 +813,13 @@ const Tasks: React.FC<Props> = ({
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Clock className="h-4 w-4" />
                               <span className="font-medium">
-                                Start:{" "}
-                                {new Date(task.startTime).toLocaleString()}
+                                Start: {formatLocalNoSeconds(task.startMs)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <CalendarDays className="h-4 w-4" />
                               <span className="font-medium">
-                                End: {new Date(task.endTime).toLocaleString()}
+                                End: {formatLocalNoSeconds(task.endMs)}
                               </span>
                             </div>
                           </div>

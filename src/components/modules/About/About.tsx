@@ -11,26 +11,28 @@ type TeamMember = {
   img: string; // local (/images/...) or remote (https://...)
 };
 
+//i.ibb.co/fYjd78cr/Whats-App-Image-2025-08-17-at-18-20-44-13fbc91d.jpg
+
 const team: TeamMember[] = [
   {
-    name: "Abidur Rahman Arko",
-    role: "Chief Technology Officer",
+    name: "Aro Arko",
+    role: "Project Manager & Lead Developer",
     img: "https://www.aro-arko.software/_next/image?url=%2F_next%2Fstatic%2Fmedia%2FprofileImage.497e7112.jpg&w=1920&q=75",
   },
   {
-    name: "Hr Irfan",
+    name: "Irfan",
     role: "Frontend Developer & System Analyst",
     img: "https://scontent.fkul4-3.fna.fbcdn.net/v/t39.30808-6/518393059_122234665760081233_2615029208159413532_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=cc71e4&_nc_eui2=AeFLcOQ4U898WEXEYYB7wY-KEbO9lgknWqERs72WCSdaobW38DGTYjK14gs7pw9gcT43LtFCQ4o0lliKjN1xJg4k&_nc_ohc=OnHrDQwXUacQ7kNvwHUrA4u&_nc_oc=AdlZnEvF1PSvXUAh2zUGHDvi33SV_O5kdMnHPzcRvkWp2vwBjXbLo4mTAYoaHmv2AcU&_nc_zt=23&_nc_ht=scontent.fkul4-3.fna&_nc_gid=JuouYhBby3yOvdkHxielTQ&oh=00_AfVgqyULfM8e7E8O0faT9Nk4iE-tEdgfhrhpizH7XCw8nQ&oe=68A6D435",
   },
   {
     name: "Lawrance",
-    role: "Product Designer",
-    img: "https://randomuser.me/api/portraits/women/44.jpg",
+    role: "QA Analyst",
+    img: "https://i.ibb.co/fYjd78cr/Whats-App-Image-2025-08-17-at-18-20-44-13fbc91d.jpg",
   },
   {
     name: "Abyaz Ahmed",
-    role: "Marketing Strategist",
-    img: "https://randomuser.me/api/portraits/men/45.jpg",
+    role: "Business Analyst",
+    img: "https://i.ibb.co/Z6PsK3Mw/IMG-8515.jpg",
   },
 ];
 

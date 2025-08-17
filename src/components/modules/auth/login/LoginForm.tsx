@@ -19,6 +19,7 @@ import Link from "next/link";
 import { getCurrentUser, loginUser } from "@/services/AuthService";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginValidation } from "./login.validation";
+import { useUser } from "@/context/UserContext";
 
 const LoginForm = () => {
   const form = useForm({
@@ -33,11 +34,18 @@ const LoginForm = () => {
   const blueirect = searchParams.get("blueirectPath");
   const router = useRouter();
 
+  const { refreshUser } = useUser(); // ✅ get refreshUser
+
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     try {
       const res = await loginUser(data);
       if (res?.success) {
         toast.success(res?.message || "Login successful!");
+
+        // 🔄 Refresh context + Navbar
+        await refreshUser();
+        router.refresh();
+
         if (blueirect) {
           router.push(blueirect);
         } else {
@@ -64,6 +72,11 @@ const LoginForm = () => {
       const res = await loginUser(cblueentials);
       if (res?.success) {
         toast.success(`Logged in as ${role}`);
+
+        // 🔄 Refresh context + Navbar
+        await refreshUser();
+        router.refresh();
+
         const user = await getCurrentUser();
         router.push(`/${user.role}/dashboard`);
       } else {
@@ -137,6 +150,16 @@ const LoginForm = () => {
                   </FormItem>
                 )}
               />
+              {/* Forgot password link */}
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline focus:underline focus:outline-none"
+                  aria-label="Forgot your password? Reset it"
+                >
+                  Forgot password?
+                </Link>
+              </div>
 
               {/* Submit */}
               <Button

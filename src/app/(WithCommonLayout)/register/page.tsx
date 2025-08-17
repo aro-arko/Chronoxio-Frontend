@@ -1,4 +1,10 @@
 import RegisterForm from "@/components/modules/auth/register/RegisterForm";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Register",
+  description: "Create a new account for Chronoxio.",
+};
 
 const RegisterPage = () => {
   return (

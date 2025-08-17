@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
@@ -24,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// 🔐 If you use your own user context
+// 🔐 Your context/services
 import { useUser } from "@/context/UserContext";
 import { logout } from "@/services/AuthService";
 import { protectedRoutes } from "@/constants";
@@ -38,6 +39,27 @@ const navLinks = [
   { name: "FAQs", href: "/faq" },
   { name: "Contact", href: "/contact" },
 ];
+
+/** Utils to broadcast auth changes across tabs */
+function sendAuthPing(type: "login" | "logout") {
+  try {
+    new BroadcastChannel("auth").postMessage(type);
+  } catch {}
+  try {
+    localStorage.setItem("auth:ping", JSON.stringify({ type, t: Date.now() }));
+  } catch {}
+}
+
+/** Call this right after successful login in your login flow */
+export function afterLoginUIRefresh(
+  router: ReturnType<typeof useRouter>,
+  setUser: (u: any) => void,
+  userObj: any
+) {
+  setUser(userObj);
+  sendAuthPing("login");
+  router.refresh();
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -63,19 +85,43 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // 🔁 Cross-tab auth refresh
+  React.useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+
+    try {
+      channel = new BroadcastChannel("auth");
+      channel.onmessage = (e) => {
+        if (e.data === "logout" || e.data === "login") {
+          router.refresh();
+        }
+      };
+    } catch {}
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "auth:ping" && e.newValue) {
+        router.refresh();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [router]);
+
   const toggleMobileMenu = () => setIsMobileMenuOpen((v) => !v);
 
   const onLogout = async () => {
     try {
       await logout(); // clear cookie on server
     } finally {
-      try {
-        new BroadcastChannel("auth").postMessage("logout");
-      } catch {}
-      try {
-        localStorage.setItem("auth:ping", String(Date.now()));
-      } catch {}
       setUser(null);
+      sendAuthPing("logout");
+      router.refresh(); // ⬅️ immediately revalidate server components
+
+      // If current page is protected, send them home
       if (protectedRoutes.some((route) => pathname.match(route))) {
         router.push("/");
       }
@@ -158,18 +204,17 @@ export default function Navbar() {
                   >
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex items-center gap-3">
-                        {/* Avatar (Image-safe) */}
                         <AvatarImage
-                          src={user?.avatarUrl}
-                          alt={user?.name || "User"}
+                          src={(user as any)?.avatarUrl}
+                          alt={(user as any)?.name || "User"}
                           size={32}
                         />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">
-                            {user?.name ?? "Member"}
+                            {(user as any)?.name ?? "Member"}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {user?.email}
+                            {(user as any)?.email}
                           </span>
                         </div>
                       </div>
@@ -300,7 +345,6 @@ function AvatarImage({
 }) {
   const [error, setError] = React.useState(false);
 
-  // If no src or it failed, show fallback image
   if (!src || error) {
     return (
       <Image
@@ -314,7 +358,6 @@ function AvatarImage({
     );
   }
 
-  // Remote images require domain allowlist in next.config (see below)
   return (
     <Image
       src={src}

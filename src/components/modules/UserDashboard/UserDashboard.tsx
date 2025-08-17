@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -26,6 +27,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useMemo } from "react";
+import { useUser } from "@/context/UserContext";
 
 // -------- Types --------
 type TActivity = {
@@ -118,6 +120,8 @@ const UserDashboard: React.FC<Props> = ({
   tasks,
   setShowTaskModal,
 }) => {
+  const { user } = useUser();
+
   // ---- KPIs from tasks (timeSpent is in *seconds*) ----
   const {
     completedCount,
@@ -138,6 +142,8 @@ const UserDashboard: React.FC<Props> = ({
     const completedCount = completed.length;
     const pendingCount = pending.length;
     const expiredCount = expired.length;
+
+    // const { user } = useUser(); // <-- Remove this line from useMemo
 
     // sum seconds → convert to minutes
     const totalTimeSpentSeconds = completed.reduce(
@@ -476,18 +482,24 @@ const UserDashboard: React.FC<Props> = ({
                 Quick Actions
               </h2>
               <div className="space-y-3">
-                <button
-                  onClick={() => setShowTaskModal?.(true)}
+                <Link
+                  href={
+                    user?.role
+                      ? `/${String(user.role).toLowerCase()}/tasks`
+                      : "/login"
+                  }
                   className="w-full flex items-center justify-between p-4 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition border border-blue-100"
                 >
-                  <Link href="/user/tasks">
-                    <span>My Tasks</span>
-                  </Link>
+                  <span>My Tasks</span>
                   <FiPlus size={18} />
-                </button>
+                </Link>
 
                 <Link
-                  href="/app/leaderboard"
+                  href={
+                    user?.role
+                      ? `/${String(user.role).toLowerCase()}/leaderboard`
+                      : "/login"
+                  }
                   className="w-full flex items-center justify-between p-4 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition border border-green-100"
                 >
                   <span>Leaderboard</span>
@@ -495,7 +507,11 @@ const UserDashboard: React.FC<Props> = ({
                 </Link>
 
                 <Link
-                  href="/app/reports"
+                  href={
+                    user?.role
+                      ? `/${String(user.role).toLowerCase()}/reports`
+                      : "/login"
+                  }
                   className="w-full flex items-center justify-between p-4 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition border border-yellow-100"
                 >
                   <span>Reports</span>

@@ -1,1 +1,7 @@
-export const protectedRoutes = ["/login", "/user", "/user/:page", "/wishlist"];
+export const protectedRoutes = [
+  "/login",
+  "/user",
+  "/user/*",
+  "/admin",
+  "/admin/*",
+];
