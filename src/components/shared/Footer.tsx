@@ -152,7 +152,7 @@ const Footer = () => {
       {/* Copyright */}
       <div className="border-t border-gray-800 mt-2 pt-2 text-center">
         <p className="text-sm text-gray-400">
-          © {new Date().getFullYear()} TaskManager. All rights reserved.
+          © {new Date().getFullYear()} Chronoxio. All rights reserved.
         </p>
       </div>
     </footer>
