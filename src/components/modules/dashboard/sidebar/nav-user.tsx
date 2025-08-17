@@ -40,7 +40,7 @@ export function NavUser({ userDetails }: { userDetails?: UserDetails | null }) {
   };
 
   const handleChangePassword = () => {
-    router.push("/change-password");
+    router.push(`/${user?.role}/change-password`);
   };
 
   return (

@@ -1,4 +1,6 @@
 export interface IUser {
+  name: string;
+  avatarUrl: string | null | undefined;
   email: string;
   role: string;
   iat?: number;

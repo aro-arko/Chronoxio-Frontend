@@ -1,544 +1,329 @@
-// "use client";
-// import { useEffect, useState } from "react";
-// import { useUser } from "@/context/UserContext";
-// import { Button } from "../ui/button";
-// import {
-//   Menu,
-//   X,
-//   ChevronDown,
-//   LogOut,
-//   User,
-//   LayoutDashboard,
-//   Calendar,
-//   Heart,
-// } from "lucide-react"; // Added Heart icon
-// import { usePathname, useRouter } from "next/navigation";
-// import { logout } from "@/services/AuthService";
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuGroup,
-//   DropdownMenuItem,
-//   DropdownMenuLabel,
-//   DropdownMenuSeparator,
-//   DropdownMenuTrigger,
-// } from "../ui/dropdown-menu";
-// import Link from "next/link";
-// import { FaRegUserCircle, FaUserCircle } from "react-icons/fa";
-// import { protectedRoutes } from "@/constants";
-// import Image from "next/image";
-// import logo from "@/app/favicon.ico";
-// import { cn } from "@/lib/utils";
-// import { motion, AnimatePresence } from "framer-motion";
-// import { getAllSubjects } from "@/services/Subjects";
-// import NavTutorFilters from "./NavTutorFilters";
-// import { Badge } from "../ui/badge";
-// import { getCart } from "@/services/CartService";
+"use client";
 
-// interface Filters {
-//   search: string;
-//   subjects: string[];
-//   rating: string;
-//   hourlyRate: number;
-//   availability: string;
-//   location: string;
-// }
+import * as React from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Menu,
+  X,
+  User as UserIcon,
+  LayoutDashboard,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 
-// export default function Navbar() {
-//   const { user, setIsLoading } = useUser();
-//   const role = user?.role;
-//   const pathname = usePathname();
-//   const router = useRouter();
-//   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-//   const [isScrolled, setIsScrolled] = useState(false);
-//   const [isBrowseTutorsOpen, setIsBrowseTutorsOpen] = useState(false);
-//   const [subjects, setSubjects] = useState<{ _id: string; name: string }[]>([]);
-//   const [filters, setFilters] = useState<Filters>({
-//     search: "",
-//     subjects: [],
-//     rating: "",
-//     hourlyRate: 50,
-//     availability: "",
-//     location: "",
-//   });
-//   const [wishlistCount, setWishlistCount] = useState<number>(0);
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-//   const isActive = (path: string) => pathname === path;
+// 🔐 If you use your own user context
+import { useUser } from "@/context/UserContext";
+import { logout } from "@/services/AuthService";
+import { protectedRoutes } from "@/constants";
 
-//   const toggleMobileMenu = () => {
-//     setIsMobileMenuOpen(!isMobileMenuOpen);
-//   };
+const FALLBACK_AVATAR = "/avatar-fallback.png";
 
-//   const handleLogout = () => {
-//     logout();
-//     setIsLoading(true);
-//     if (protectedRoutes.some((route) => pathname.match(route))) {
-//       router.push("/");
-//     }
-//   };
+const navLinks = [
+  { name: "Home", href: "/" },
+  { name: "About", href: "/about" },
+  { name: "Services", href: "/services" },
+  { name: "FAQs", href: "/faq" },
+  { name: "Contact", href: "/contact" },
+];
 
-//   const handleSearch = () => {
-//     const queryParams = new URLSearchParams();
-//     if (filters.search) queryParams.append("search", filters.search);
-//     if (filters.subjects.length > 0)
-//       queryParams.append("subjects", filters.subjects.join(","));
-//     if (filters.rating) queryParams.append("rating", filters.rating);
-//     if (filters.hourlyRate)
-//       queryParams.append("maxRate", filters.hourlyRate.toString());
-//     if (filters.availability)
-//       queryParams.append("availability", filters.availability);
-//     if (filters.location) queryParams.append("location", filters.location);
+export default function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
 
-//     router.push(`/tutors?${queryParams.toString()}`);
-//     setIsBrowseTutorsOpen(false);
-//   };
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
 
-//   useEffect(() => {
-//     const fetchSubjects = async () => {
-//       try {
-//         const res = await getAllSubjects();
-//         setSubjects(res.data);
-//       } catch (error) {
-//         console.error("Failed to fetch subjects:", error);
-//       }
-//     };
-//     fetchSubjects();
-//   }, []);
+  const { user, setUser } = useUser();
+  const roleSlug = (user?.role || "").toLowerCase();
+  const dashboardHref =
+    roleSlug === "admin"
+      ? "/admin/dashboard"
+      : roleSlug
+      ? `/${roleSlug}/dashboard`
+      : "/";
 
-//   useEffect(() => {
-//     const handleScroll = () => {
-//       setIsScrolled(window.scrollY > 10);
-//     };
-//     window.addEventListener("scroll", handleScroll);
-//     return () => window.removeEventListener("scroll", handleScroll);
-//   }, []);
+  const isActive = (path: string) => pathname === path;
 
-//   useEffect(() => {
-//     setIsLoading(true);
-//     setTimeout(() => {
-//       setIsLoading(false);
-//     }, 500);
-//   }, [pathname, setIsLoading]);
+  React.useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-//   useEffect(() => {
-//     const fetchWishlistCount = async () => {
-//       try {
-//         const res = await getCart();
-//         if (res?.success) {
-//           const cartItems = res.data;
-//           setWishlistCount(cartItems.length);
-//         }
-//       } catch (error) {
-//         console.error("Error fetching wishlist count:", error);
-//       }
-//     };
+  const toggleMobileMenu = () => setIsMobileMenuOpen((v) => !v);
 
-//     fetchWishlistCount();
+  const onLogout = async () => {
+    try {
+      await logout(); // clear cookie on server
+    } finally {
+      try {
+        new BroadcastChannel("auth").postMessage("logout");
+      } catch {}
+      try {
+        localStorage.setItem("auth:ping", String(Date.now()));
+      } catch {}
+      setUser(null);
+      if (protectedRoutes.some((route) => pathname.match(route))) {
+        router.push("/");
+      }
+    }
+  };
 
-//     const handleCartUpdate = () => {
-//       fetchWishlistCount();
-//     };
+  const linkBase =
+    "px-3 py-2 text-sm font-medium rounded-md transition-all duration-300";
+  const linkActive = "bg-blue-500 text-white shadow-md";
+  const linkIdle = "text-neutral-700 hover:text-blue-600 hover:bg-gray-100";
 
-//     window.addEventListener("cart-updated", handleCartUpdate);
+  return (
+    <nav
+      className={[
+        "fixed w-full z-50 transition-all duration-300 border-b",
+        isScrolled
+          ? "bg-white/90 backdrop-blur-md shadow-sm border-neutral-200"
+          : "bg-white border-neutral-200",
+      ].join(" ")}
+      aria-label="Main"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 lg:px-0">
+        <div className="flex justify-between h-16 items-center">
+          {/* Brand */}
+          <Link href="/" className="flex items-center" aria-label="Chronoxio">
+            <h1 className="text-2xl font-bold">Chronoxio</h1>
+          </Link>
 
-//     return () => {
-//       window.removeEventListener("cart-updated", handleCartUpdate);
-//     };
-//   }, []);
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center justify-center flex-1 space-x-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={[
+                  linkBase,
+                  isActive(link.href) ? linkActive : linkIdle,
+                ].join(" ")}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
 
-//   const navLinks = [
-//     { name: "Home", href: "/", icon: null },
-//     { name: "About", href: "/about", icon: null },
-//     { name: "FAQ", href: "/faq", icon: null },
-//     { name: "Blogs", href: "/blogs", icon: null },
-//   ];
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {/* Account area */}
+            {!user ? (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="rounded-full px-4 py-2 text-sm font-medium border border-blue-600 text-blue-600 hover:bg-blue-600/10"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/join-us"
+                  className="rounded-full px-4 py-2 text-sm font-medium text-white bg-blue-600 shadow hover:bg-blue-700 transition"
+                >
+                  Join Us
+                </Link>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-3 py-2 h-9"
+                      aria-label="Account menu"
+                    >
+                      <UserIcon className="h-4 w-4 mr-2" />
+                      <span className="text-sm">Account</span>
+                      <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 border border-neutral-200"
+                  >
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar (Image-safe) */}
+                        <AvatarImage
+                          src={user?.avatarUrl}
+                          alt={user?.name || "User"}
+                          size={32}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {user?.name ?? "Member"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {user?.email}
+                          </span>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={dashboardHref}
+                        className="w-full flex items-center"
+                      >
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
 
-//   return (
-//     <nav
-//       className={cn(
-//         "fixed w-full z-50 transition-all duration-300 border-b",
-//         isScrolled
-//           ? "bg-background/90 backdrop-blur-md shadow-sm border-border"
-//           : "bg-background border-border"
-//       )}
-//     >
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
-//         <div className="flex justify-between h-16 items-center">
-//           <div className="flex-shrink-0">
-//             <Link href="/" className="flex items-center space-x-2 group">
-//               <motion.div className="relative w-8 h-8">
-//                 <Image
-//                   src={logo}
-//                   alt="TutorLink"
-//                   width={32}
-//                   height={32}
-//                   className="rounded-lg"
-//                 />
-//               </motion.div>
-//               <span className="text-xl font-bold">TutorLink</span>
-//             </Link>
-//           </div>
+            {/* Mobile toggle */}
+            <button
+              onClick={toggleMobileMenu}
+              aria-label="Toggle mobile menu"
+              className="md:hidden p-2 rounded-md hover:bg-neutral-100"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6 text-neutral-700" />
+              ) : (
+                <Menu className="h-6 w-6 text-neutral-700" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
-//           <div className="hidden md:flex items-center space-x-1">
-//             <Link
-//               href="/"
-//               className={cn(
-//                 "px-3 py-2 text-sm font-medium rounded-md transition-all flex items-center space-x-1",
-//                 isActive("/")
-//                   ? "text-primary bg-primary/10"
-//                   : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-//               )}
-//             >
-//               <span>Home</span>
-//             </Link>
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden bg-white border-t border-neutral-200 overflow-hidden"
+          >
+            <div className="px-4 py-3 space-y-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={[
+                    "block px-3 py-2 rounded-md text-base font-medium transition-colors",
+                    isActive(link.href)
+                      ? "bg-blue-600/10 text-blue-700"
+                      : "text-neutral-700 hover:bg-neutral-100 hover:text-blue-600",
+                  ].join(" ")}
+                >
+                  {link.name}
+                </Link>
+              ))}
 
-//             <DropdownMenu
-//               open={isBrowseTutorsOpen}
-//               onOpenChange={setIsBrowseTutorsOpen}
-//             >
-//               <DropdownMenuTrigger asChild>
-//                 <Button
-//                   variant="ghost"
-//                   className={cn(
-//                     "px-3 py-2 text-sm font-medium rounded-md transition-all flex items-center space-x-1",
-//                     isActive("/tutors")
-//                       ? "text-primary bg-primary/10"
-//                       : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-//                   )}
-//                 >
-//                   <span>Browse Tutors</span>
-//                   <ChevronDown className="h-4 w-4" />
-//                 </Button>
-//               </DropdownMenuTrigger>
-//               <DropdownMenuContent
-//                 className="w-[600px] p-4 shadow-lg rounded-lg border border-border"
-//                 align="start"
-//                 sideOffset={10}
-//               >
-//                 <NavTutorFilters
-//                   subjects={subjects}
-//                   filters={filters}
-//                   setFilters={setFilters}
-//                   onSearch={handleSearch}
-//                 />
-//               </DropdownMenuContent>
-//             </DropdownMenu>
+              {!user ? (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full text-center rounded-full px-4 py-2 mt-2 text-base font-medium text-white bg-blue-600 shadow hover:bg-blue-700 transition"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/join-us"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full text-center rounded-full px-4 py-2 text-base font-medium border border-blue-600 text-blue-600 hover:bg-blue-600/10"
+                  >
+                    Join Us
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={dashboardHref}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full text-left rounded-md px-3 py-2 text-base font-medium hover:bg-neutral-100"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </span>
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      setIsMobileMenuOpen(false);
+                      await onLogout();
+                    }}
+                    className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-blue-600 hover:bg-blue-600/10"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Log out
+                    </span>
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+}
 
-//             {navLinks.slice(1).map((link) => (
-//               <Link
-//                 key={link.name}
-//                 href={link.href}
-//                 className={cn(
-//                   "px-3 py-2 text-sm font-medium rounded-md transition-all flex items-center space-x-1",
-//                   isActive(link.href)
-//                     ? "text-primary bg-primary/10"
-//                     : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-//                 )}
-//               >
-//                 {link.icon && <span>{link.icon}</span>}
-//                 <span>{link.name}</span>
-//               </Link>
-//             ))}
-//           </div>
+/** Image-safe avatar with graceful fallbacks */
+function AvatarImage({
+  src,
+  alt,
+  size = 36,
+}: {
+  src?: string | null;
+  alt: string;
+  size?: number;
+}) {
+  const [error, setError] = React.useState(false);
 
-//           <div className="hidden md:flex items-center space-x-3">
-//             {user ? (
-//               <>
-//                 {/* Wishlist Button with Badge */}
-//                 {user.role === "student" && (
-//                   <Link href="/wishlist">
-//                     <div
-//                       className="relative rounded-full hover:bg-primary/5  cursor-pointer"
-//                       onClick={() => router.push("/wishlist")}
-//                       aria-label="Wishlist"
-//                     >
-//                       <Heart className="h-5 w-5" />
-//                       {wishlistCount > 0 && (
-//                         <Badge
-//                           variant="destructive"
-//                           className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0"
-//                         >
-//                           {wishlistCount > 9 ? "9+" : wishlistCount}
-//                         </Badge>
-//                       )}
-//                     </div>
-//                   </Link>
-//                 )}
+  // If no src or it failed, show fallback image
+  if (!src || error) {
+    return (
+      <Image
+        src={FALLBACK_AVATAR}
+        alt={alt}
+        width={size}
+        height={size}
+        className="rounded-full object-cover"
+        sizes={`${size}px`}
+      />
+    );
+  }
 
-//                 {/* Account Dropdown */}
-//                 <DropdownMenu>
-//                   <DropdownMenuTrigger asChild>
-//                     <Button
-//                       variant="ghost"
-//                       className="flex items-center space-x-2 px-3 py-2 bg-primary/5 rounded-full"
-//                     >
-//                       <FaUserCircle className="h-4 w-4 text-primary" />
-//                       <span className="text-sm font-medium text-foreground">
-//                         Account
-//                       </span>
-//                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
-//                     </Button>
-//                   </DropdownMenuTrigger>
-//                   <DropdownMenuContent
-//                     className="w-56 mt-2 shadow-lg rounded-md border border-border"
-//                     align="end"
-//                   >
-//                     <DropdownMenuLabel className="font-normal">
-//                       <div className="flex flex-col space-y-1">
-//                         <p className="text-xs leading-none text-muted-foreground">
-//                           {user.email}
-//                         </p>
-//                       </div>
-//                     </DropdownMenuLabel>
-//                     <DropdownMenuSeparator />
-//                     <DropdownMenuGroup>
-//                       <DropdownMenuItem asChild>
-//                         <Link
-//                           href={
-//                             role === "tutor"
-//                               ? "/tutor-profile"
-//                               : "/student-profile"
-//                           }
-//                           className="w-full flex items-center"
-//                         >
-//                           <User className="mr-2 h-4 w-4" />
-//                           <span>Profile</span>
-//                         </Link>
-//                       </DropdownMenuItem>
-//                       <DropdownMenuItem asChild>
-//                         <Link
-//                           href={`/${role}/dashboard`}
-//                           className="w-full flex items-center"
-//                         >
-//                           <LayoutDashboard className="mr-2 h-4 w-4" />
-//                           <span>Dashboard</span>
-//                         </Link>
-//                       </DropdownMenuItem>
-//                       <DropdownMenuItem asChild>
-//                         <Link
-//                           href={
-//                             role === "student"
-//                               ? "/booking/lists"
-//                               : "/tutor/bookings"
-//                           }
-//                           className="w-full flex items-center"
-//                         >
-//                           <Calendar className="mr-2 h-4 w-4" />
-//                           <span>Bookings</span>
-//                         </Link>
-//                       </DropdownMenuItem>
-//                       {/* Added Wishlist to Dropdown */}
-//                       {user.role === "student" && (
-//                         <DropdownMenuItem asChild>
-//                           <Link
-//                             href="/wishlist"
-//                             className="w-full flex items-center"
-//                           >
-//                             <Heart className="mr-2 h-4 w-4" />
-//                             <span>Wishlist</span>
-//                             {wishlistCount > 0 && (
-//                               <span className="ml-auto bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-//                                 {wishlistCount > 9 ? "9+" : wishlistCount}
-//                               </span>
-//                             )}
-//                           </Link>
-//                         </DropdownMenuItem>
-//                       )}
-//                     </DropdownMenuGroup>
-//                     <DropdownMenuSeparator />
-//                     <DropdownMenuItem
-//                       onClick={handleLogout}
-//                       className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-//                     >
-//                       <LogOut className="mr-2 h-4 w-4" />
-//                       <span>Log out</span>
-//                     </DropdownMenuItem>
-//                   </DropdownMenuContent>
-//                 </DropdownMenu>
-//               </>
-//             ) : (
-//               <div className="flex space-x-2">
-//                 <Button asChild variant="outline" className="rounded-full">
-//                   <Link href="/register-student">Sign Up</Link>
-//                 </Button>
-//                 <Button
-//                   asChild
-//                   className="rounded-full bg-gradient-to-r from-primary to-red-600 hover:from-primary/90 hover:to-red-600/90"
-//                 >
-//                   <Link href="/login">Login</Link>
-//                 </Button>
-//               </div>
-//             )}
-//           </div>
-
-//           <div className="md:hidden flex items-center">
-//             {user && (
-//               <DropdownMenu>
-//                 <DropdownMenuTrigger asChild>
-//                   <FaRegUserCircle className="h-6 w-6 text-gray-800 mr-2" />
-//                 </DropdownMenuTrigger>
-//                 <DropdownMenuContent
-//                   className="w-56 shadow-lg rounded-md border border-border"
-//                   align="end"
-//                   sideOffset={10}
-//                 >
-//                   <DropdownMenuLabel className="font-normal">
-//                     <div className="flex flex-col space-y-1">
-//                       <p className="text-xs leading-none text-muted-foreground">
-//                         {user.email}
-//                       </p>
-//                     </div>
-//                   </DropdownMenuLabel>
-//                   <DropdownMenuSeparator />
-//                   <DropdownMenuGroup>
-//                     <DropdownMenuItem asChild>
-//                       <Link
-//                         href={
-//                           role === "tutor"
-//                             ? "/tutor-profile"
-//                             : "/student-profile"
-//                         }
-//                         className="w-full flex items-center"
-//                       >
-//                         <User className="mr-2 h-4 w-4" />
-//                         <span>Profile</span>
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem asChild>
-//                       <Link
-//                         href={`/${role}/dashboard`}
-//                         className="w-full flex items-center"
-//                       >
-//                         <LayoutDashboard className="mr-2 h-4 w-4" />
-//                         <span>Dashboard</span>
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     <DropdownMenuItem asChild>
-//                       <Link
-//                         href={
-//                           role === "student"
-//                             ? "/booking/lists"
-//                             : "/tutor/bookings"
-//                         }
-//                         className="w-full flex items-center"
-//                       >
-//                         <Calendar className="mr-2 h-4 w-4" />
-//                         <span>Bookings</span>
-//                       </Link>
-//                     </DropdownMenuItem>
-//                     {/* Added Wishlist to Mobile Dropdown */}
-//                     <DropdownMenuItem asChild>
-//                       <Link
-//                         href="/wishlist"
-//                         className="w-full flex items-center"
-//                       >
-//                         <Heart className="mr-2 h-4 w-4" />
-//                         <span>Wishlist</span>
-//                         {wishlistCount > 0 && (
-//                           <span className="ml-auto bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-//                             {wishlistCount > 9 ? "9+" : wishlistCount}
-//                           </span>
-//                         )}
-//                       </Link>
-//                     </DropdownMenuItem>
-//                   </DropdownMenuGroup>
-//                   <DropdownMenuSeparator />
-//                   <DropdownMenuItem
-//                     onClick={handleLogout}
-//                     className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-//                   >
-//                     <LogOut className="mr-2 h-4 w-4" />
-//                     <span>Log out</span>
-//                   </DropdownMenuItem>
-//                 </DropdownMenuContent>
-//               </DropdownMenu>
-//             )}
-//             <div
-//               onClick={toggleMobileMenu}
-//               aria-label="Toggle mobile menu"
-//               className="flex items-center justify-center rounded-full hover:bg-primary/5 h-12 w-12 cursor-pointer"
-//             >
-//               {isMobileMenuOpen ? (
-//                 <X className="h-6 w-6 text-foreground" />
-//               ) : (
-//                 <Menu className="h-6 w-6 text-foreground" />
-//               )}
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       <AnimatePresence>
-//         {isMobileMenuOpen && (
-//           <motion.div
-//             initial={{ opacity: 0, height: 0 }}
-//             animate={{ opacity: 1, height: "auto" }}
-//             exit={{ opacity: 0, height: 0 }}
-//             transition={{ duration: 0.2 }}
-//             className="md:hidden bg-background border-t border-border overflow-hidden"
-//           >
-//             <div className="px-4 py-3 space-y-2">
-//               <Link
-//                 href="/"
-//                 onClick={toggleMobileMenu}
-//                 className={cn(
-//                   "block px-3 py-2 rounded-md text-base font-medium transition-colors",
-//                   isActive("/")
-//                     ? "bg-primary/10 text-primary"
-//                     : "text-foreground/80 hover:bg-primary/5 hover:text-primary"
-//                 )}
-//               >
-//                 Home
-//               </Link>
-//               <Link
-//                 href="/tutors"
-//                 onClick={toggleMobileMenu}
-//                 className={cn(
-//                   "block px-3 py-2 rounded-md text-base font-medium transition-colors",
-//                   isActive("/tutors")
-//                     ? "bg-primary/10 text-primary"
-//                     : "text-foreground/80 hover:bg-primary/5 hover:text-primary"
-//                 )}
-//               >
-//                 Browse Tutors
-//               </Link>
-//               {navLinks.slice(1).map((link) => (
-//                 <Link
-//                   key={link.name}
-//                   href={link.href}
-//                   onClick={toggleMobileMenu}
-//                   className={cn(
-//                     "block px-3 py-2 rounded-md text-base font-medium transition-colors",
-//                     isActive(link.href)
-//                       ? "bg-primary/10 text-primary"
-//                       : "text-foreground/80 hover:bg-primary/5 hover:text-primary"
-//                   )}
-//                 >
-//                   {link.name}
-//                 </Link>
-//               ))}
-
-//               {!user && (
-//                 <div className="pt-2 border-t border-border space-y-2">
-//                   <Button asChild variant="outline" className="w-full">
-//                     <Link href="/register-student" onClick={toggleMobileMenu}>
-//                       Sign Up
-//                     </Link>
-//                   </Button>
-//                   <Button
-//                     asChild
-//                     className="w-full bg-gradient-to-r from-primary to-red-600 hover:from-primary/90 hover:to-red-600/90"
-//                   >
-//                     <Link href="/login" onClick={toggleMobileMenu}>
-//                       Login
-//                     </Link>
-//                   </Button>
-//                 </div>
-//               )}
-//             </div>
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//     </nav>
-//   );
-// }
+  // Remote images require domain allowlist in next.config (see below)
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      sizes={`${size}px`}
+      className="rounded-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+}

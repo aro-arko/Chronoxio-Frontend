@@ -1,31 +1,52 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { FieldValues } from "react-hook-form";
 import { cookies } from "next/headers";
 
-// helper to build headers
-const getAuthHeaders = async () => {
-  const token = (await cookies()).get("accessToken")?.value;
-
-  return {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `${token}` }), // no Bearer prefix
-  };
-};
-
 export const createTask = async (taskData: FieldValues) => {
+  console.log(taskData);
+  const token = (await cookies()).get("accessToken")?.value;
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_API}/tasks/create`,
       {
         method: "POST",
-        headers: await getAuthHeaders(),
+        headers: {
+          Authorization: `${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(taskData),
       }
     );
+    console.log(res);
 
     return res.json();
-  } catch (error: unknown) {
+  } catch (error: any) {
+    return Error(error);
+  }
+};
+
+// complete task
+export const completeTask = async (
+  taskId: string,
+  data: { timeSpent: number }
+) => {
+  const token = (await cookies()).get("accessToken")?.value;
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_API}/tasks/complete/${taskId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+    return res.json();
+  } catch (error: any) {
     return Error(error);
   }
 };
@@ -59,65 +80,99 @@ export const getTasks = async () => {
   }
 };
 
-export const getIncompletedTasks = async () => {
+export const getTasksForDashboard = async () => {
+  const token = (await cookies()).get("accessToken")?.value;
+  if (!token) throw new Error("No access token found");
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_API}/tasks`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch tasks: ${res.status} ${res.statusText}`);
+  }
+  const json = await res.json();
+  return json?.data ?? [];
+};
+
+// export const deleteTask = async(task)
+export const deleteTask = async (taskId: string) => {
+  const token = (await cookies()).get("accessToken")?.value;
+
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_API}/tasks?status=in-complete`,
+      `${process.env.NEXT_PUBLIC_BASE_API}/tasks/delete/${taskId}`,
       {
-        method: "GET",
-        headers: await getAuthHeaders(),
+        method: "DELETE",
+        headers: {
+          Authorization: `${token}`,
+          "Content-Type": "application/json",
+        },
       }
     );
+    if (!res.ok) {
+      throw new Error(
+        `Completed tasks can only be deleted after 7 days for reporting purposes`
+      );
+    }
+
     return res.json();
-  } catch (error: unknown) {
-    return Error(error);
+  } catch (error) {
+    console.error("deleteTask error:", error);
+    throw error;
   }
 };
 
-export const getCompletedTasks = async () => {
+// get weekly report
+export const getWeeklyReport = async () => {
+  const token = (await cookies()).get("accessToken")?.value;
+
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_API}/tasks?status=completed`,
+      `${process.env.NEXT_PUBLIC_BASE_API}/tasks/report/weekly`,
       {
         method: "GET",
-        headers: await getAuthHeaders(),
+        headers: {
+          Authorization: `${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
       }
     );
-    return res.json();
-  } catch (error: unknown) {
-    return Error(error);
+
+    const json = await res.json();
+    return json.data ?? []; // 👈 only return the array
+  } catch (error) {
+    console.error("getWeeklyReport error:", error);
+    throw error;
   }
 };
 
-// update task status
-export const updateTaskStatus = async (taskId: string, data: any) => {
+// update task - expired
+export const updateExpiredTask = async (taskId: string) => {
+  const token = (await cookies()).get("accessToken")?.value;
+
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_API}/tasks/update/${taskId}`,
       {
         method: "PATCH",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ taskId, ...data }),
+        headers: {
+          Authorization: `${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "expired" }),
       }
     );
-    return res.json();
-  } catch (error: unknown) {
-    return Error(error);
-  }
-};
 
-// get pending tasks
-export const getPendingTasks = async () => {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_API}/tasks?status=in-complete`,
-      {
-        method: "GET",
-        headers: await getAuthHeaders(),
-      }
-    );
     return res.json();
-  } catch (error: unknown) {
-    return Error(error);
+  } catch (error) {
+    console.error("updateExpiredTask error:", error);
+    throw error;
   }
 };

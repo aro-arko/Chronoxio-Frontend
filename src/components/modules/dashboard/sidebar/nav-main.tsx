@@ -31,7 +31,7 @@ export function NavMain({ items = [] }: NavMainProps) {
     <SidebarGroup>
       <SidebarGroupLabel className="mb-4">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          📝 TaskManager
+          📝 Chronoxio
         </h1>
       </SidebarGroupLabel>
 
