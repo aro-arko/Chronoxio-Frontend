@@ -157,7 +157,7 @@ export default function Contact() {
                     Email
                   </h3>
                   <p className="text-gray-600 dark:text-neutral-300">
-                    support@student-ambassador.com
+                    support@chronoxio.com
                   </p>
                 </div>
               </div>

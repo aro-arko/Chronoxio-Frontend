@@ -29,10 +29,10 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         {/* About Section */}
         <div className="space-y-4">
-          <h3 className="text-xl font-bold">TaskManager</h3>
+          <h3 className="text-xl font-bold">Chronoxio</h3>
           <p className="text-sm text-gray-400">
-            Simplify your workflow and stay organised. TaskManager helps teams
-            and individuals plan, track, and achieve their goals efficiently.
+            Simplify your workflow and stay organised. Chronoxio helps teams and
+            individuals plan, track, and achieve their goals efficiently.
           </p>
           <div className="flex space-x-4">
             <Link
@@ -108,7 +108,7 @@ const Footer = () => {
             <li className="flex items-center space-x-2">
               <Mail className="h-5 w-5 text-gray-400" />
               <span className="text-sm text-gray-400">
-                support@taskmanager.com
+                support@chronoxio.com
               </span>
             </li>
             <li className="flex items-center space-x-2">
